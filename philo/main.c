@@ -6,11 +6,13 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:45:46 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 00:07:03 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 00:35:34 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
+
+
 
 int	main(int argc, char **argv)
 {
@@ -26,9 +28,9 @@ int	main(int argc, char **argv)
 	printf("time_to_sleep: %ld\n", table.time_to_sleep);
 	printf("eat_limit: %ld\n", table.eat_limit);
 	*/
-		//init_table(&table);
-		//start_simulation(&table);
-		//clean(&table);
+	init_table(&table);
+	//start_simulation(&table);
+	//clean(&table);
 	return (0);
 }
 

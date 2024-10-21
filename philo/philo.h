@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:44:36 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 00:04:07 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 00:36:56 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,15 +21,16 @@
 # include <sys/time.h>
 # include <limits.h>
 
-
-# define RST "\033[0m"
-# define RED "\033[0;31m"
-# define GRN "\033[0;32m"
-# define YEL "\033[0;33m"
-# define BLU "\033[0;34m"
-# define MAG "\033[0;35m"
-# define CYN "\033[0;36m"
-# define WHT "\033[0;37m"
+typedef enum e_opcode
+{
+	LOCK,
+	UNLOCK,
+	INIT,
+	DESTROY,
+	CREATE,
+	JOIN,
+	DETACH,
+}			t_opcode;
 
 typedef struct s_table t_table;
 	
@@ -69,6 +70,8 @@ typedef struct s_table
 	pthread_mutex_t	death;
 }					t_table;
 
+// main.c
+void *safe_malloc(size_t size);
 
 // utils.c
 void error_exit(char *str);
@@ -77,7 +80,10 @@ long ft_atol(const char *str);
 
 // init.c
 void input_init(t_table *table, char **argv);
+void init_table(t_table *table);
 
+// safe_funcs.c
+void safe_mutex(t_opcode opcode, pthread_mutex_t *mutex);
 
 /*
 #define N 5
