@@ -6,11 +6,27 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:59:18 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/21 23:54:40 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 00:03:41 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
+
+int ft_strlen(const char *s)
+{
+	int i;
+
+	i = 0;
+	while (s[i])
+		i++;
+	return i;
+}
+
+void error_exit(char *message)
+{
+    write(2, message, ft_strlen(message));
+    exit(1);
+}
 
 int is_valid_digit(char c)
 {

@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:44:36 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/21 23:21:43 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 00:04:07 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,14 +70,13 @@ typedef struct s_table
 }					t_table;
 
 
-long ft_atol(const char *str);
-int ft_strlen(const char *s);
-
+// utils.c
 void error_exit(char *str);
+void input_check(t_table *table);
+long ft_atol(const char *str);
 
-
-
-
+// init.c
+void input_init(t_table *table, char **argv);
 
 
 /*
