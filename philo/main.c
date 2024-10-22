@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:45:46 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 02:57:11 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 03:18:23 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ int	main(int argc, char **argv)
 	printf("eat_limit: %ld\n", table.eat_limit);
 	init_table(&table);
 	start_simulation(&table);
-	//clean(&table);
+	clean_up(&table);
 	return (0);
 }
 

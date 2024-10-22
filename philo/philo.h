@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:44:36 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 02:53:47 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 03:18:38 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,6 +92,10 @@ void safe_thread(pthread_t *thread, void *(*func)(void *), void *arg, t_opcode o
 void *philo_life(void *arg);
 void start_simulation(t_table *table);
 size_t current_time_in_ms(void);
+
+// clean_up.c
+void clean_up(t_table *table);
+
 
 
 /*
