@@ -1,6 +1,6 @@
 NAME = philo
 
-SRC = main.c init.c utils.c safe_funcs.c
+SRC = main.c init.c utils.c safe_funcs.c philo.c
 OBJ = $(SRC:.c=.o)
 
 CC = gcc

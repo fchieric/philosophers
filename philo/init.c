@@ -6,20 +6,107 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 04:10:53 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 00:36:27 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 03:01:33 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
+static void	assign_forks(t_philo *philo, t_fork *forks, int i)
+{
+	int philo_num;
+
+	philo_num = philo->table->n_philo;
+	philo->right_fork = &forks[i];
+	philo->left_fork = &forks[(i + 1) % philo_num];
+}
+
+static void	init_philo(t_table *table)
+{
+	int		i;
+	t_philo	*philo;
+
+	i = 0;
+	while (i < table->n_philo)
+	{
+		philo = &table->philos[i];  // Puntiamo al filosofo corrente
+		philo->id = i + 1;
+		philo->eat_count = 0;
+		philo->is_full = false;
+		philo->table = table;
+		assign_forks(philo, table->forks, i);  // Assegniamo le forchette
+		i++;
+	}
+}
+
 void	init_table(t_table *table)
 {
-	//int	i;
+	int i;
 
-	//i = 0;
+	i = 0;
 	table->end = false;
 	table->philos = safe_malloc(table->n_philo * sizeof(t_philo));
+	table->forks = safe_malloc(table->n_philo * sizeof(t_fork));
+
+	// Inizializzazione dei mutex per le forchette
+	while (i < table->n_philo)
+	{
+		safe_mutex(INIT, &table->forks[i].mutex);
+		table->forks[i].fork_id = i;
+		i++;
+	}
+
+	// Inizializzazione dei filosofi
+	init_philo(table);
 }
+
+/*
+static void	assign_forks(t_philo *philo, t_fork *forks, int i)
+{
+	int philo_num;
+
+	philo_num = philo->table->n_philo;
+	philo->right_fork = &forks[i];
+	philo->left_fork = &forks[(i + 1) % philo_num];
+}
+
+
+static void	init_philo(t_table *table)
+{
+	int		i;
+	t_philo	*philo;
+
+	i = 0;
+	while (i < table->n_philo)
+	{
+		philo = table->philos + i;
+		philo->id = i + 1;
+		philo->eat_count = 0;
+		philo->is_full = false;
+		philo->table = table;
+		assign_forks(philo, table->forks, i);
+	}
+}
+
+
+void	init_table(t_table *table)
+{
+	int	i;
+
+	i = 0;
+	table->end = false;
+	table->philos = safe_malloc(table->n_philo * sizeof(t_philo));
+	table->forks = safe_malloc(table->n_philo * sizeof(t_fork));
+	while (i < table->n_philo)
+	{
+		safe_mutex(INIT, &table->forks[i].mutex);
+		table->forks[i].fork_id = i;
+		i++;
+	}
+	init_philo(table);
+}
+*/
+
 
 void	input_check(t_table *table)
 {
@@ -58,50 +145,3 @@ void	input_init(t_table *table, char **argv)
 	}
 	input_check(table);
 }
-
-/*
-t_philo_table* init_table(int n_philo)
-{
-	t_philo_table *table = malloc(sizeof(t_philo_table));
-	table->n_philo = n_philo;
-	table->state = malloc(n_philo * sizeof(int));
-	table->cond = malloc(n_philo * sizeof(pthread_cond_t));
-	
-	pthread_mutex_init(&table->mutex, NULL);
-	for (int i = 0; i < n_philo; i++) {
-		table->state[i] = THINKING;
-		pthread_cond_init(&table->cond[i], NULL);
-	}
-	
-	return table;
-}
-*/
-
-
-/*
-// Initializes the philos array with the necessary values.
-// The id is set to the index + 1.
-// The left fork is set to the index.
-// The right fork is set to the index + 1 modulo the philo_count.
-// The eat_count is set to 0.
-// The forks is set to the forks array.
-// The print is set to the print mutex.
-// The death is set to the death mutex.
-void	init_philos(t_data *data)
-{
-	int	i;
-
-	i = 0;
-	while (i < data->philo_count)
-	{
-		data->philos[i].id = i + 1;
-		data->philos[i].left_fork = i;
-		data->philos[i].right_fork = (i + 1) % data->philo_count;
-		data->philos[i].eat_count = 0;
-		data->philos[i].forks = data->forks;
-		data->philos[i].print = &data->print;
-		data->philos[i].death = &data->death;
-		i++;
-	}
-}
-*/

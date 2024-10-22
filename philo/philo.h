@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:44:36 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 00:36:56 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 02:53:47 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,8 @@
 # include <stdlib.h>
 # include <sys/time.h>
 # include <limits.h>
+# include <errno.h>
+
 
 typedef enum e_opcode
 {
@@ -37,7 +39,7 @@ typedef struct s_table t_table;
 typedef struct s_fork
 {
 	int				fork_id;
-	pthread_mutex_t	mutex;
+	pthread_mutex_t	mutex; //fork
 	
 }				t_fork;
 
@@ -84,6 +86,13 @@ void init_table(t_table *table);
 
 // safe_funcs.c
 void safe_mutex(t_opcode opcode, pthread_mutex_t *mutex);
+void safe_thread(pthread_t *thread, void *(*func)(void *), void *arg, t_opcode op);
+
+// philo.c
+void *philo_life(void *arg);
+void start_simulation(t_table *table);
+size_t current_time_in_ms(void);
+
 
 /*
 #define N 5

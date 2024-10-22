@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/20 03:45:46 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 00:35:34 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/22 02:57:11 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,15 +21,13 @@ int	main(int argc, char **argv)
 	if (argc < 5 || argc > 6)
 		error_exit("Error: Invalid number of arguments\n");
 	input_init(&table, argv); // Inizializza + chiama il check input
-	/*
 	printf("n_philo: %ld\n", table.n_philo);
 	printf("time_to_die: %ld\n", table.time_to_die);
 	printf("time_to_eat: %ld\n", table.time_to_eat);
 	printf("time_to_sleep: %ld\n", table.time_to_sleep);
 	printf("eat_limit: %ld\n", table.eat_limit);
-	*/
 	init_table(&table);
-	//start_simulation(&table);
+	start_simulation(&table);
 	//clean(&table);
 	return (0);
 }
