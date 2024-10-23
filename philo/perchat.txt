@@ -1,0 +1,464 @@
+void    set_bool(pthread_mutex_t *mutex, bool *var, bool value)
+{
+	pthread_mutex_lock(mutex);
+	*var = value;
+	pthread_mutex_unlock(mutex);
+}
+
+bool    get_bool(pthread_mutex_t *mutex, bool *var)
+{
+	bool value;
+
+	pthread_mutex_lock(mutex);
+	value = *var;
+	pthread_mutex_unlock(mutex);
+	return (value);
+}
+
+void    set_long(pthread_mutex_t *mutex, long *var, long value)
+{
+	pthread_mutex_lock(mutex);
+	*var = value;
+	pthread_mutex_unlock(mutex);
+}
+
+long    get_long(pthread_mutex_t *mutex, long *var)
+{
+	long value;
+
+	pthread_mutex_lock(mutex);
+	value = *var;
+	pthread_mutex_unlock(mutex);
+	return (value);
+}
+
+void set_simulation_state(t_table *table, t_simulation_state state) {
+    safe_mutex(LOCK, &table->table_mutex);
+    table->sim_state = state;
+    safe_mutex(UNLOCK, &table->table_mutex);
+}
+
+t_simulation_state get_simulation_state(t_table *table) {
+    t_simulation_state state;
+    safe_mutex(LOCK, &table->table_mutex);
+    state = table->sim_state;
+    safe_mutex(UNLOCK, &table->table_mutex);
+    return state;
+}
+
+
+static void init_mutex_table(t_table *table)
+{
+	safe_mutex(INIT, &table->table_mutex);
+	safe_mutex(INIT, &table->write_mutex);
+	safe_mutex(INIT, &table->start_mutex);
+}
+
+static void init_mutex_forks(t_table *table)
+{
+	int i;
+
+	i = 0;
+	while (i < table->n_philo)
+	{
+    	safe_mutex(INIT, &table->forks[i].mutex);
+    	table->forks[i].fork_id = i;
+    	i++;
+	}
+}
+
+static void init_philo(t_table *table)
+{
+    int i;
+    t_philo *philo;
+
+    i = 0;
+    while (i < table->n_philo)
+    {
+        philo = &table->philos[i];
+        philo->id = i + 1;
+        philo->eat_count = 0;
+        philo->is_full = false;
+        philo->last_meal = get_time();
+        philo->table = table;
+        safe_mutex(INIT, &philo->mutex);
+        
+        // Modifica l'assegnazione delle forchette per prevenire deadlock
+        if (philo->id % 2 == 0)
+        {
+            philo->right_fork = &table->forks[i];
+            philo->left_fork = &table->forks[(i + 1) % table->n_philo];
+        }
+        else
+        {
+            philo->left_fork = &table->forks[i];
+            philo->right_fork = &table->forks[(i + 1) % table->n_philo];
+        }
+        i++;
+    }
+}
+
+void init_table(t_table *table)
+{
+	table->end = false;
+	table->all_threads_ready = false;
+	table->ready_count = 0;
+	table->philos = safe_malloc(table->n_philo * sizeof(t_philo));
+	table->forks = safe_malloc(table->n_philo * sizeof(t_fork));
+	init_mutex_table(table);
+	init_mutex_forks(table);
+	// Inizializza i filosofi
+	init_philo(table);
+}
+
+void	input_check(t_table *table)
+{
+	if (table->n_philo == INT_MAX)
+	{
+		error_exit("Error: Invalid number of philosophers 🥶\n");
+	}
+	if (table->time_to_die < 60000 || table->time_to_eat < 60000
+		|| table->time_to_sleep < 60000)
+	{
+		error_exit("Error: Time values must be at least 60 ms 🥺\n");
+	}
+	if (table->time_to_die > INT_MAX || table->time_to_eat > INT_MAX
+		|| table->time_to_sleep > INT_MAX)
+	{
+			error_exit("Error: Time values must be comprised between 0 and INT_MAX 🥺\n");
+	}
+}
+
+void input_init(t_table *table, char **argv)
+{
+    table->n_philo = ft_atol(argv[1]);
+    table->time_to_die = ft_atol(argv[2]) * 1000;   // Converti in microseondi
+    table->time_to_eat = ft_atol(argv[3]) * 1000;   // Converti in microsecondi
+    table->time_to_sleep = ft_atol(argv[4]) * 1000; // Converti in microsecondi
+    table->eat_limit = -1;
+    
+    if (argv[5])
+        table->eat_limit = ft_atol(argv[5]);
+    
+    input_check(table);
+}
+
+
+
+void update_death(t_philo *philo, long current_time)
+{
+    long last_meal;
+
+    // Blocca il mutex del filosofo per leggere il suo ultimo pasto
+    safe_mutex(LOCK, &philo->mutex);
+    last_meal = philo->last_meal;
+    if (current_time - last_meal > philo->table->time_to_die)
+    {
+        write_status(DEAD, philo);
+        set_bool(&philo->table->table_mutex, &philo->table->end, true); // Imposta la fine della simulazione
+    }
+    safe_mutex(UNLOCK, &philo->mutex);
+}
+
+void *death_checker(void *arg)
+{
+    t_table *table = (t_table *)arg;
+
+    printf("[DEBUG] Death checker started\n");
+    while (get_simulation_state(table) == RUNNING)
+    {
+        for (int i = 0; i < table->n_philo; i++)
+        {
+            if (get_long(&table->philos[i].mutex, &table->philos[i].last_meal) + table->time_to_die < (long)get_time())
+            {
+                write_status(DEAD, &table->philos[i]);
+                set_simulation_state(table, END);
+                printf("[DEBUG] Philosopher %d died, ending simulation\n", i + 1);
+                return NULL;
+            }
+        }
+        precise_usleep(1000, table); // Attendi un po' per ridurre il carico di CPU
+    }
+    printf("[DEBUG] Death checker ending\n");
+    return NULL;
+}
+
+
+bool simulation_end(t_table *table)
+{
+    return get_bool(&table->table_mutex, &table->end);
+}
+
+
+void clean_up(t_table *table)
+{
+    int i;
+
+    // Distruggere i mutex dei filosofi
+    for (i = 0; i < table->n_philo; i++)
+    {
+        pthread_mutex_destroy(&table->philos[i].mutex);
+    }
+
+    // Distruggere i mutex delle forchette
+    for (i = 0; i < table->n_philo; i++)
+    {
+        pthread_mutex_destroy(&table->forks[i].mutex);
+    }
+
+    // Distruggere i mutex della tavola
+    pthread_mutex_destroy(&table->table_mutex);
+    pthread_mutex_destroy(&table->write_mutex);
+    pthread_mutex_destroy(&table->start_mutex);  // Distruggi il mutex start_mutex
+
+    // Liberare la memoria allocata
+    free(table->philos);
+    free(table->forks);
+}
+
+
+
+int	main(int argc, char **argv)
+{
+	t_table	table;
+
+	if (argc < 5 || argc > 6)
+		error_exit("Error: Invalid number of arguments\n");
+	input_init(&table, argv); // Inizializza + chiama il check input
+	init_table(&table);
+	start_simulation(&table);
+	clean_up(&table);
+	return (0);
+}
+
+void write_status(t_state status, t_philo *philo)
+{
+    long elapsed;
+    if (simulation_end(philo->table))
+        return;
+
+    safe_mutex(LOCK, &philo->table->write_mutex);
+
+// Utilizza il timestamp globale di table->start_time
+    elapsed = get_time() - philo->table->start_time;
+
+// Debug info
+    printf("[DEBUG] Philo %d - Current time: %ld, Start time: %ld, Elapsed: %ld\n", 
+        philo->id, get_time(), philo->table->start_time, elapsed);
+
+    if (!simulation_end(philo->table))
+    {
+        if (status == FORK)
+            printf("%ld %d has taken a fork\n", elapsed, philo->id);
+        else if (status == EATING)
+        {
+            printf("%ld %d is eating (count: %ld)\n", elapsed, philo->id, philo->eat_count);
+            printf("[DEBUG] Philo %d last meal time: %ld\n", philo->id, philo->last_meal);
+        }
+        else if (status == SLEEPING)
+            printf("%ld %d is sleeping\n", elapsed, philo->id);
+        else if (status == THINKING)
+            printf("%ld %d is thinking\n", elapsed, philo->id);
+        else if (status == DEAD)
+            printf("%ld %d died\n", elapsed, philo->id);
+    }
+    safe_mutex(UNLOCK, &philo->table->write_mutex);
+}
+
+
+void *safe_malloc(size_t size)
+{
+	void *ret;
+
+	ret = malloc(size);
+	if (ret == NULL)
+	{
+		error_exit("Error: Malloc failed :(\n");
+	}
+	return (ret);
+}
+
+
+void mutex_error(int status, t_opcode opcode) 
+{
+	if (status == 0)
+		return;
+	if (status == EINVAL)
+	{
+		if (opcode == INIT)
+			error_exit("Error: Invalid attribute value :(\n");
+		else
+			error_exit("Error: Invalid mutex value :(\n");
+	}
+	else if (status == EDEADLK)
+		error_exit("Error: A deadlock condition was detected :(\n");
+	else if (status == EAGAIN)
+		error_exit("Error: Max number of recursive locks exceeded :(\n");
+	else if (status == ENOMEM)
+		error_exit("Error: Insufficient memory for mutex initialization :(\n");
+	else if (status == EBUSY)
+		error_exit("Error: The mutex is already locked :(\n");
+	else if (status == EPERM)
+		error_exit("Error: Current thread does not hold a lock on the mutex :(\n");
+	else
+		error_exit("Error: Mutex operation failed :(\n");
+}
+
+
+int safe_mutex(t_opcode opcode, pthread_mutex_t *mutex)
+{
+    int status = 0;
+
+    if (opcode == LOCK)
+        status = pthread_mutex_lock(mutex);
+    else if (opcode == UNLOCK)
+        status = pthread_mutex_unlock(mutex);
+    else if (opcode == INIT)
+        status = pthread_mutex_init(mutex, NULL);
+    else if (opcode == DESTROY)
+        status = pthread_mutex_destroy(mutex);
+    else
+        error_exit("Error: Invalid opcode :(\n");
+    mutex_error(status, opcode);
+    return status;  // Restituisci lo stato per il controllo esterno
+}
+
+
+
+static void thread_error(int status, t_opcode op) 
+{
+	if (status == 0)
+		return;
+
+	if (status == EINVAL) {
+		if (op == JOIN || op == DETACH)
+			error_exit("Error: Invalid thread or the thread is not joinable :(\n");
+		else
+			error_exit("Error: Invalid thread attributes :(\n");
+	}
+	else if (status == EPERM)
+		error_exit("Error: No permission to join or detach the thread :(\n");
+	else if (status == ESRCH)
+		error_exit("Error: No thread with the ID could be found :(\n");
+	else if (status == EDEADLK)
+		error_exit("Error: A deadlock was detected :(\n");
+	else
+		error_exit("Error: Thread operation failed :(\n");
+}
+
+void safe_thread(pthread_t *thread, void *(*func)(void *), void *arg, t_opcode op)
+{
+	int status = 0;
+
+	if (op == CREATE)
+		status = pthread_create(thread, NULL, func, arg);
+	else if (op == JOIN)
+		status = pthread_join(*thread, NULL);
+	else if (op == DETACH)
+		status = pthread_detach(*thread);
+	else
+		error_exit("Error: Invalid thread operation :(\n");
+	thread_error(status, op);
+}
+
+
+int ft_strlen(const char *s)
+{
+	int i;
+
+	i = 0;
+	while (s[i])
+		i++;
+	return i;
+}
+
+void error_exit(char *message)
+{
+	write(2, message, ft_strlen(message));
+	exit(1);
+}
+
+int is_valid_digit(char c)
+{
+	if (c >= '0' && c <= '9')
+		return 1;
+	return 0;
+}
+
+long parse_number(const char *str, int *i, int *found_digit)
+{
+	long res;
+
+	res = 0;
+	*found_digit = 0;
+	while (str[*i] && (is_valid_digit(str[*i]) || str[*i] == ' '))
+	{
+		if (is_valid_digit(str[*i]))
+		{
+			if (res > INT_MAX / 10 || (res == INT_MAX / 10 && 
+				(str[*i] - '0') > INT_MAX % 10))
+			{
+				error_exit("Error: Number exceeds INT_MAX 🥵\n");
+			}
+			res = res * 10 + (str[*i] - '0');
+			*found_digit = 1;
+		}
+		(*i)++;
+	}
+	return res;
+}
+
+long ft_atol(const char *str)
+{
+	int i;
+	int found_digit;
+	long res;
+
+	i = 0;
+	while (str[i] == ' ' || (str[i] >= 9 && str[i] <= 13))
+		i++;
+	if (str[i] == '-' || str[i] == '+')
+	{
+		if (str[i] == '-')
+			error_exit("Error: Negative numbers not allowed 😡\n");
+		i++;
+	}
+	res = parse_number(str, &i, &found_digit);
+	if (!found_digit)
+		error_exit("Error: Found a non number 🤯\n");
+	if (str[i] != '\0')
+		error_exit("Error: Invalid characters in input 🥶\n");
+	return res;
+}
+
+long get_time(void)
+{
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL) != 0)
+    {
+        perror("gettimeofday failed");
+        return -1;  // Valore di errore
+    }
+    return tv.tv_sec * 1000L + tv.tv_usec / 1000L;
+}
+
+
+
+void precise_usleep(long time, t_table *table)
+{
+    long start;
+    long elapsed;
+    
+    start = get_time();
+    while (!simulation_end(table))
+    {
+        elapsed = get_time() - start;
+        if (elapsed >= time)
+            break;
+        
+        if (time - elapsed > 1000)
+            usleep(500);
+        else
+            usleep(100);
+    }
+}

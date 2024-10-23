@@ -6,7 +6,7 @@
 /*   By: fabi <fabi@student.42.fr>                  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/22 00:35:45 by fabi              #+#    #+#             */
-/*   Updated: 2024/10/22 02:29:14 by fabi             ###   ########.fr       */
+/*   Updated: 2024/10/23 11:43:21 by fabi             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,8 @@ void *safe_malloc(size_t size)
 	return (ret);
 }
 
-static void mutex_error(int status, t_opcode opcode) 
+
+void mutex_error(int status, t_opcode opcode) 
 {
 	if (status == 0)
 		return;
@@ -50,24 +51,25 @@ static void mutex_error(int status, t_opcode opcode)
 }
 
 
-void safe_mutex(t_opcode opcode, pthread_mutex_t *mutex)
+int safe_mutex(t_opcode opcode, pthread_mutex_t *mutex)
 {
-	int status;
-	
-	status = 0;
-	if (opcode == LOCK)
-		status = pthread_mutex_lock(mutex);
-	else if (opcode == UNLOCK)
-		status = pthread_mutex_unlock(mutex);
-	else if (opcode == INIT)
-		status = pthread_mutex_init(mutex, NULL);
-	else if (opcode == DESTROY)
-		status = pthread_mutex_destroy(mutex);
-	else
-		error_exit("Error: Invalid opcode :(\n");
+    int status = 0;
 
-	mutex_error(status, opcode);
+    if (opcode == LOCK)
+        status = pthread_mutex_lock(mutex);
+    else if (opcode == UNLOCK)
+        status = pthread_mutex_unlock(mutex);
+    else if (opcode == INIT)
+        status = pthread_mutex_init(mutex, NULL);
+    else if (opcode == DESTROY)
+        status = pthread_mutex_destroy(mutex);
+    else
+        error_exit("Error: Invalid opcode :(\n");
+    mutex_error(status, opcode);
+    return status;  // Restituisci lo stato per il controllo esterno
 }
+
+
 
 static void thread_error(int status, t_opcode op) 
 {
